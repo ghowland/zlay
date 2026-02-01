@@ -6,4 +6,9 @@ ZIG=/mnt/c/zig/zig-x86_64-windows-0.15.1/zig.exe
 
 reset ; $ZIG build -Doptimize=Debug -freference-trace --prefix build/
 
+echo
+echo "-- Code --"
+echo
+
+./build/bin/clay_layout_test.exe
 

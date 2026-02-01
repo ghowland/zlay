@@ -557,14 +557,15 @@ fn elementOpen(id: i32, layout: LayoutConfig, shared: ?SharedConfig, border: ?Bo
     return slot_idx;
 }
 
+// Replacement elementClose — identical logic, no changes needed here.
+// The close itself is correct. The iteration is what was wrong.
+// This is included for completeness so you have the full function.
 fn elementClose() void {
     const slot_idx = decl_stack[@intCast(decl_stack_top)];
     decl_stack_top -= 1;
 
-    // children_end = current next_slot (exclusive)
     ring_buffer[@intCast(slot_idx)].children_end = next_slot;
 
-    // Compute fit dimensions from children
     const lc_idx = ring_buffer[@intCast(slot_idx)].layout_config_idx;
     const lc = &layout_configs[@intCast(lc_idx)];
 
@@ -576,12 +577,12 @@ fn elementClose() void {
     var sum_child_w: f32 = 0.0;
     var sum_child_h: f32 = 0.0;
 
+    // FIXED: use nextSibling to skip subtrees — direct children only
     var i: i32 = ring_buffer[@intCast(slot_idx)].children_start;
     while (i < ring_buffer[@intCast(slot_idx)].children_end) {
         if (isChildLive(i)) {
             if (configPresentFloating(i)) {
                 ring_buffer[@intCast(slot_idx)].floating_children_count += 1;
-                // Floating child — write TreeRoot
                 const fc_idx = configLookupFloating(i);
                 const fc = &floating_configs[@intCast(fc_idx)];
                 _ = allocTreeRoot(TreeRoot{
@@ -591,7 +592,6 @@ fn elementClose() void {
                     .z_index = fc.z_index,
                 });
             } else {
-                // Non-floating: contributes to fit
                 child_count += 1;
                 const cw = ring_buffer[@intCast(i)].dimensions_w;
                 const ch = ring_buffer[@intCast(i)].dimensions_h;
@@ -601,10 +601,10 @@ fn elementClose() void {
                 if (ch > max_child_h) max_child_h = ch;
             }
         }
-        i += 1;
+        i = nextSibling(i); // FIXED: skip subtree
     }
 
-    const gap_total: f32 = if (child_count > 1) lc.child_gap * @as(f32, @floatFromInt(child_count - 1)) else 0.0;
+    const gap_total: f32 = if (child_count > 1) lc.child_gap * @as(f32, @intCast(child_count - 1)) else 0.0;
 
     if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
         fit_w += sum_child_w + gap_total;
@@ -614,7 +614,6 @@ fn elementClose() void {
         fit_w += max_child_w;
     }
 
-    // Only write fit if sizing type is FIT (type 0)
     if (lc.sizing_w_type == SIZE_FIT) {
         ring_buffer[@intCast(slot_idx)].dimensions_w = fit_w;
     }
@@ -811,12 +810,10 @@ fn passDeclaration() void {
 fn passSizeX() void {
     assertDepsAndMark(BIT_SIZE_X, BIT_DECLARATION);
 
-    // BFS queue — static array, no alloc
     var queue: [SLOT_COUNT]i32 = [_]i32{-1} ** SLOT_COUNT;
     var q_head: i32 = 0;
     var q_tail: i32 = 0;
 
-    // Seed BFS from each tree root
     var r: i32 = 0;
     while (r < next_tree_root) {
         const root_slot = tree_roots[@intCast(r)].layout_element_index;
@@ -836,37 +833,34 @@ fn passSizeX() void {
         const lc = &layout_configs[@intCast(lc_idx)];
         const parent_w: f32 = ring_buffer[@intCast(slot_idx)].dimensions_w;
 
-        // Resolve children X
+        // FIXED: use nextSibling throughout
         var i: i32 = ring_buffer[@intCast(slot_idx)].children_start;
         while (i < ring_buffer[@intCast(slot_idx)].children_end) {
             if (isChildLive(i) and isChildNonFloating(i)) {
                 const child_lc_idx = ring_buffer[@intCast(i)].layout_config_idx;
                 if (child_lc_idx == -1) {
-                    i += 1;
+                    i = nextSibling(i);
                     continue;
                 }
                 const child_lc = &layout_configs[@intCast(child_lc_idx)];
                 const content_w: f32 = parent_w - lc.padding_left - lc.padding_right;
 
                 if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
-                    // Along axis
                     switch (child_lc.sizing_w_type) {
                         SIZE_FIXED => {
                             ring_buffer[@intCast(i)].dimensions_w = child_lc.sizing_w_min;
                         },
                         SIZE_PERCENT => {
-                            // Count non-grow children for gap calc
                             var nfc: i32 = 0;
                             var j: i32 = ring_buffer[@intCast(slot_idx)].children_start;
                             while (j < ring_buffer[@intCast(slot_idx)].children_end) {
                                 if (isChildLive(j) and isChildNonFloating(j)) nfc += 1;
-                                j += 1;
+                                j = nextSibling(j); // FIXED
                             }
-                            const gap_total: f32 = if (nfc > 1) lc.child_gap * @as(f32, @floatFromInt(nfc - 1)) else 0.0;
+                            const gap_total: f32 = if (nfc > 1) lc.child_gap * @as(f32, @intCast(nfc - 1)) else 0.0;
                             ring_buffer[@intCast(i)].dimensions_w = (content_w - gap_total) * child_lc.sizing_w_percent;
                         },
                         SIZE_GROW => {
-                            // GROW distribution — simple equal split among all GROW children
                             var non_grow_sum: f32 = 0.0;
                             var grow_count: i32 = 0;
                             var nfc2: i32 = 0;
@@ -884,21 +878,20 @@ fn passSizeX() void {
                                         }
                                     }
                                 }
-                                j2 += 1;
+                                j2 = nextSibling(j2); // FIXED
                             }
-                            const gap_total2: f32 = if (nfc2 > 1) lc.child_gap * @as(f32, @floatFromInt(nfc2 - 1)) else 0.0;
+                            const gap_total2: f32 = if (nfc2 > 1) lc.child_gap * @as(f32, @intCast(nfc2 - 1)) else 0.0;
                             const remaining: f32 = content_w - gap_total2 - non_grow_sum;
                             if (grow_count > 0 and remaining > 0) {
-                                var grown: f32 = remaining / @as(f32, @floatFromInt(grow_count));
+                                var grown: f32 = remaining / @as(f32, @intCast(grow_count));
                                 grown = @max(grown, child_lc.sizing_w_min);
                                 grown = @min(grown, child_lc.sizing_w_max);
                                 ring_buffer[@intCast(i)].dimensions_w = grown;
                             }
                         },
-                        else => {}, // FIT — already set in declaration
+                        else => {},
                     }
                 } else {
-                    // Off axis (X for TOP_TO_BOTTOM)
                     switch (child_lc.sizing_w_type) {
                         SIZE_GROW => {
                             ring_buffer[@intCast(i)].dimensions_w = @max(@min(content_w, child_lc.sizing_w_max), child_lc.sizing_w_min);
@@ -909,15 +902,14 @@ fn passSizeX() void {
                         SIZE_FIT => {
                             ring_buffer[@intCast(i)].dimensions_w = @max(@min(ring_buffer[@intCast(i)].dimensions_w, child_lc.sizing_w_max), child_lc.sizing_w_min);
                         },
-                        else => {}, // FIXED already set
+                        else => {},
                     }
                 }
 
-                // Enqueue child for its own children
                 queue[@intCast(q_tail)] = i;
                 q_tail += 1;
             }
-            i += 1;
+            i = nextSibling(i); // FIXED
         }
     }
 
@@ -1037,14 +1029,11 @@ fn passAspectRatioV() void {
 fn passPropagateHeights() void {
     assertDepsAndMark(BIT_PROPAGATE_HEIGHTS, BIT_TEXT_WRAP | BIT_ASPECT_RATIO_V);
 
-    // DFS bottom-up via post-order traversal
-    // Use iterative post-order: two-stack approach
     var stack1: [SLOT_COUNT]i32 = [_]i32{-1} ** SLOT_COUNT;
     var stack2: [SLOT_COUNT]i32 = [_]i32{-1} ** SLOT_COUNT;
     var s1_top: i32 = -1;
     var s2_top: i32 = -1;
 
-    // Seed from tree roots
     var r: i32 = 0;
     while (r < next_tree_root) {
         const root_slot = tree_roots[@intCast(r)].layout_element_index;
@@ -1055,25 +1044,23 @@ fn passPropagateHeights() void {
         r += 1;
     }
 
-    // Build post-order in stack2
     while (s1_top >= 0) {
         const node = stack1[@intCast(s1_top)];
         s1_top -= 1;
         s2_top += 1;
         stack2[@intCast(s2_top)] = node;
 
-        // Push children
+        // FIXED: use nextSibling
         var i: i32 = ring_buffer[@intCast(node)].children_start;
         while (i < ring_buffer[@intCast(node)].children_end) {
             if (isChildLive(i) and isChildNonFloating(i)) {
                 s1_top += 1;
                 stack1[@intCast(s1_top)] = i;
             }
-            i += 1;
+            i = nextSibling(i); // FIXED
         }
     }
 
-    // Process stack2 (post-order = children before parents)
     while (s2_top >= 0) {
         const slot_idx = stack2[@intCast(s2_top)];
         s2_top -= 1;
@@ -1082,7 +1069,6 @@ fn passPropagateHeights() void {
         if (lc_idx == -1) continue;
         const lc = &layout_configs[@intCast(lc_idx)];
 
-        // Only recompute if this element has children and sizing is FIT on H
         if (lc.sizing_h_type != SIZE_FIT) continue;
         if (ring_buffer[@intCast(slot_idx)].children_start == ring_buffer[@intCast(slot_idx)].children_end) continue;
 
@@ -1090,6 +1076,7 @@ fn passPropagateHeights() void {
         var max_child_h: f32 = 0.0;
         var sum_child_h: f32 = 0.0;
 
+        // FIXED: use nextSibling
         var i: i32 = ring_buffer[@intCast(slot_idx)].children_start;
         while (i < ring_buffer[@intCast(slot_idx)].children_end) {
             if (isChildLive(i) and isChildNonFloating(i)) {
@@ -1098,17 +1085,16 @@ fn passPropagateHeights() void {
                 sum_child_h += ch;
                 if (ch > max_child_h) max_child_h = ch;
             }
-            i += 1;
+            i = nextSibling(i); // FIXED
         }
 
-        const gap_total: f32 = if (child_count > 1) lc.child_gap * @as(f32, @floatFromInt(child_count - 1)) else 0.0;
+        const gap_total: f32 = if (child_count > 1) lc.child_gap * @as(f32, @intCast(child_count - 1)) else 0.0;
 
-        var new_h: f32 = 0;
-        if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
-            new_h = max_child_h + lc.padding_top + lc.padding_bottom;
+        var new_h: f32 = if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
+            max_child_h + lc.padding_top + lc.padding_bottom;
         } else {
-            new_h = sum_child_h + gap_total + lc.padding_top + lc.padding_bottom;
-        }
+            sum_child_h + gap_total + lc.padding_top + lc.padding_bottom;
+        };
 
         new_h = @max(@min(new_h, lc.sizing_h_max), lc.sizing_h_min);
         ring_buffer[@intCast(slot_idx)].dimensions_h = new_h;
@@ -1146,19 +1132,19 @@ fn passSizeY() void {
         const lc = &layout_configs[@intCast(lc_idx)];
         const parent_h: f32 = ring_buffer[@intCast(slot_idx)].dimensions_h;
 
+        // FIXED: use nextSibling throughout
         var i: i32 = ring_buffer[@intCast(slot_idx)].children_start;
         while (i < ring_buffer[@intCast(slot_idx)].children_end) {
             if (isChildLive(i) and isChildNonFloating(i)) {
                 const child_lc_idx = ring_buffer[@intCast(i)].layout_config_idx;
                 if (child_lc_idx == -1) {
-                    i += 1;
+                    i = nextSibling(i);
                     continue;
                 }
                 const child_lc = &layout_configs[@intCast(child_lc_idx)];
                 const content_h: f32 = parent_h - lc.padding_top - lc.padding_bottom;
 
                 if (lc.layout_direction == LAYOUT_TOP_TO_BOTTOM) {
-                    // Along axis (Y for TOP_TO_BOTTOM)
                     switch (child_lc.sizing_h_type) {
                         SIZE_FIXED => {
                             ring_buffer[@intCast(i)].dimensions_h = child_lc.sizing_h_min;
@@ -1168,9 +1154,9 @@ fn passSizeY() void {
                             var j: i32 = ring_buffer[@intCast(slot_idx)].children_start;
                             while (j < ring_buffer[@intCast(slot_idx)].children_end) {
                                 if (isChildLive(j) and isChildNonFloating(j)) nfc += 1;
-                                j += 1;
+                                j = nextSibling(j); // FIXED
                             }
-                            const gap_total: f32 = if (nfc > 1) lc.child_gap * @as(f32, @floatFromInt(nfc - 1)) else 0.0;
+                            const gap_total: f32 = if (nfc > 1) lc.child_gap * @as(f32, @intCast(nfc - 1)) else 0.0;
                             ring_buffer[@intCast(i)].dimensions_h = (content_h - gap_total) * child_lc.sizing_h_percent;
                         },
                         SIZE_GROW => {
@@ -1191,21 +1177,20 @@ fn passSizeY() void {
                                         }
                                     }
                                 }
-                                j2 += 1;
+                                j2 = nextSibling(j2); // FIXED
                             }
-                            const gap_total2: f32 = if (nfc2 > 1) lc.child_gap * @as(f32, @floatFromInt(nfc2 - 1)) else 0.0;
+                            const gap_total2: f32 = if (nfc2 > 1) lc.child_gap * @as(f32, @intCast(nfc2 - 1)) else 0.0;
                             const remaining: f32 = content_h - gap_total2 - non_grow_sum;
                             if (grow_count > 0 and remaining > 0) {
-                                var grown: f32 = remaining / @as(f32, @floatFromInt(grow_count));
+                                var grown: f32 = remaining / @as(f32, @intCast(grow_count));
                                 grown = @max(grown, child_lc.sizing_h_min);
                                 grown = @min(grown, child_lc.sizing_h_max);
                                 ring_buffer[@intCast(i)].dimensions_h = grown;
                             }
                         },
-                        else => {}, // FIT already set
+                        else => {},
                     }
                 } else {
-                    // Off axis (Y for LEFT_TO_RIGHT)
                     switch (child_lc.sizing_h_type) {
                         SIZE_GROW => {
                             ring_buffer[@intCast(i)].dimensions_h = @max(@min(content_h, child_lc.sizing_h_max), child_lc.sizing_h_min);
@@ -1223,7 +1208,7 @@ fn passSizeY() void {
                 queue[@intCast(q_tail)] = i;
                 q_tail += 1;
             }
-            i += 1;
+            i = nextSibling(i); // FIXED
         }
     }
 
@@ -1355,7 +1340,6 @@ fn passFinalLayout() void {
     var dfs_stack: [SLOT_COUNT]DFSEntry = [_]DFSEntry{DFSEntry{}} ** SLOT_COUNT;
     var dfs_top: i32 = -1;
 
-    // Process each tree root in sorted z-order
     var r: i32 = 0;
     while (r < next_tree_root) {
         const root_slot = tree_roots[@intCast(r)].layout_element_index;
@@ -1364,10 +1348,8 @@ fn passFinalLayout() void {
             continue;
         }
 
-        // Determine if this is a floating root (has floating config)
         const is_floating_root: bool = configPresentFloating(root_slot);
 
-        // Seed DFS
         dfs_top = 0;
         dfs_stack[0] = DFSEntry{
             .slot_idx = root_slot,
@@ -1386,26 +1368,21 @@ fn passFinalLayout() void {
             const slot_idx = entry.slot_idx;
 
             if (entry.visit == DFS_VISIT_DOWN) {
-                // --- FIRST VISIT: going down ---
-
                 var bbox_x: f32 = entry.parent_bbox_x + entry.next_child_offset_x + entry.scroll_offset_x;
                 var bbox_y: f32 = entry.parent_bbox_y + entry.next_child_offset_y + entry.scroll_offset_y;
                 var bbox_w: f32 = ring_buffer[@intCast(slot_idx)].dimensions_w;
                 var bbox_h: f32 = ring_buffer[@intCast(slot_idx)].dimensions_h;
 
-                // Floating element positioning
                 if (is_floating_root and slot_idx == root_slot) {
                     const fc_idx = configLookupFloating(slot_idx);
                     const fc = &floating_configs[@intCast(fc_idx)];
 
-                    // Step 1: resolve target bbox
                     var target_bbox_x: f32 = 0.0;
                     var target_bbox_y: f32 = 0.0;
                     var target_bbox_w: f32 = layout_width;
                     var target_bbox_h: f32 = layout_height;
 
                     if (fc.attach_to == 1) {
-                        // Parent — use parent on stack (not available here simply, use parent_slot_idx)
                         const parent_slot = ring_buffer[@intCast(slot_idx)].parent_slot_idx;
                         if (parent_slot >= 0) {
                             target_bbox_x = ring_buffer[@intCast(parent_slot)].bbox_x;
@@ -1414,7 +1391,6 @@ fn passFinalLayout() void {
                             target_bbox_h = ring_buffer[@intCast(parent_slot)].bbox_h;
                         }
                     } else if (fc.attach_to == 2) {
-                        // element_with_id — hash lookup
                         const target_slot = hashChainWalk(fc.parent_id);
                         if (target_slot >= 0) {
                             target_bbox_x = ring_buffer[@intCast(target_slot)].bbox_x;
@@ -1423,32 +1399,24 @@ fn passFinalLayout() void {
                             target_bbox_h = ring_buffer[@intCast(target_slot)].bbox_h;
                         }
                     }
-                    // attach_to == 3 (root) — already set to layout dimensions
 
-                    // Step 1: resolve parent attach point
                     const parent_pt = resolveAttachPoint(fc.attach_parent, target_bbox_x, target_bbox_y, target_bbox_w, target_bbox_h);
-
-                    // Step 2: subtract element attach offset
                     const elem_off = resolveElementAttachOffset(fc.attach_element, bbox_w, bbox_h);
 
-                    // Step 3: add config offset
                     bbox_x = parent_pt.x - elem_off.x + fc.offset_x;
                     bbox_y = parent_pt.y - elem_off.y + fc.offset_y;
 
-                    // Expand bbox symmetrically (does not affect children)
                     bbox_x -= fc.expand_w;
                     bbox_y -= fc.expand_h;
                     bbox_w += fc.expand_w * 2.0;
                     bbox_h += fc.expand_h * 2.0;
                 }
 
-                // Write bbox
                 ring_buffer[@intCast(slot_idx)].bbox_x = bbox_x;
                 ring_buffer[@intCast(slot_idx)].bbox_y = bbox_y;
                 ring_buffer[@intCast(slot_idx)].bbox_w = bbox_w;
                 ring_buffer[@intCast(slot_idx)].bbox_h = bbox_h;
 
-                // Scroll offset for children
                 var scroll_x: f32 = entry.scroll_offset_x;
                 var scroll_y: f32 = entry.scroll_offset_y;
                 if (configPresentClip(slot_idx)) {
@@ -1457,12 +1425,9 @@ fn passFinalLayout() void {
                     scroll_y += clip_configs[@intCast(cc_idx)].child_offset_y;
                 }
 
-                // Culling check
                 const culled = isCulled(bbox_x, bbox_y, bbox_w, bbox_h);
 
                 if (!culled) {
-                    // Emit render commands — DOWN order
-                    // SCISSOR_START
                     if (configPresentClip(slot_idx)) {
                         emitRenderCommand(RenderCommand{
                             .cmd_type = CMD_SCISSOR_START,
@@ -1473,7 +1438,6 @@ fn passFinalLayout() void {
                             .slot_id = ring_buffer[@intCast(slot_idx)].id,
                         });
                     }
-                    // RECTANGLE (background)
                     if (configPresentShared(slot_idx)) {
                         const sc = &shared_configs[@intCast(configLookupShared(slot_idx))];
                         if (sc.bg_a > 0.0) {
@@ -1495,7 +1459,6 @@ fn passFinalLayout() void {
                             });
                         }
                     }
-                    // IMAGE
                     if (configPresentImage(slot_idx)) {
                         emitRenderCommand(RenderCommand{
                             .cmd_type = CMD_IMAGE,
@@ -1506,10 +1469,12 @@ fn passFinalLayout() void {
                             .slot_id = ring_buffer[@intCast(slot_idx)].id,
                         });
                     }
-                    // TEXT — one per wrapped line
                     if (ring_buffer[@intCast(slot_idx)].text_data_idx != -1) {
                         const td_idx = ring_buffer[@intCast(slot_idx)].text_data_idx;
                         const td = &text_data[@intCast(td_idx)];
+
+                        std.debug.print("TEXT EMIT: slot={}  id={}  bbox=({},{})  cmd#={}\n", .{ slot_idx, ring_buffer[@intCast(slot_idx)].id, bbox_x, bbox_y, next_render_cmd });
+
                         var line_y: f32 = bbox_y;
                         var wl: i32 = td.wrapped_lines_start;
                         while (wl < td.wrapped_lines_end) {
@@ -1528,7 +1493,6 @@ fn passFinalLayout() void {
                             wl += 1;
                         }
                     }
-                    // CUSTOM
                     if (configPresentCustom(slot_idx)) {
                         emitRenderCommand(RenderCommand{
                             .cmd_type = CMD_CUSTOM,
@@ -1541,7 +1505,7 @@ fn passFinalLayout() void {
                     }
                 }
 
-                // Push UP visit for this node (will be processed after all children)
+                // Push UP visit
                 dfs_top += 1;
                 dfs_stack[@intCast(dfs_top)] = DFSEntry{
                     .slot_idx = slot_idx,
@@ -1552,13 +1516,11 @@ fn passFinalLayout() void {
                     .scroll_offset_y = scroll_y,
                 };
 
-                // Push children in REVERSE order
+                // Push children in REVERSE order — FIXED: use nextSibling
                 const lc_idx = ring_buffer[@intCast(slot_idx)].layout_config_idx;
                 if (lc_idx != -1) {
                     const lc = &layout_configs[@intCast(lc_idx)];
 
-                    // First pass: collect live non-floating children and compute offsets
-                    // We need reverse order, so collect indices first
                     var child_indices: [256]i32 = [_]i32{-1} ** 256;
                     var child_count: i32 = 0;
                     var ci: i32 = ring_buffer[@intCast(slot_idx)].children_start;
@@ -1567,14 +1529,12 @@ fn passFinalLayout() void {
                             child_indices[@intCast(child_count)] = ci;
                             child_count += 1;
                         }
-                        ci += 1;
+                        ci = nextSibling(ci); // FIXED
                     }
 
-                    // Compute child offsets forward, push in reverse
                     var offset_x: f32 = lc.padding_left;
                     var offset_y: f32 = lc.padding_top;
 
-                    // Pre-compute all offsets
                     var offsets_x: [256]f32 = [_]f32{0.0} ** 256;
                     var offsets_y: [256]f32 = [_]f32{0.0} ** 256;
                     var oi: i32 = 0;
@@ -1590,7 +1550,6 @@ fn passFinalLayout() void {
                         oi += 1;
                     }
 
-                    // Push in reverse
                     var pi: i32 = child_count - 1;
                     while (pi >= 0) {
                         dfs_top += 1;
@@ -1608,7 +1567,7 @@ fn passFinalLayout() void {
                     }
                 }
             } else {
-                // --- SECOND VISIT: going up ---
+                // UP visit
                 const bbox_x = ring_buffer[@intCast(slot_idx)].bbox_x;
                 const bbox_y = ring_buffer[@intCast(slot_idx)].bbox_y;
                 const bbox_w = ring_buffer[@intCast(slot_idx)].bbox_w;
@@ -1616,7 +1575,6 @@ fn passFinalLayout() void {
                 const culled = isCulled(bbox_x, bbox_y, bbox_w, bbox_h);
 
                 if (!culled) {
-                    // BORDER
                     if (configPresentBorder(slot_idx)) {
                         const bc = &border_configs[@intCast(configLookupBorder(slot_idx))];
                         emitRenderCommand(RenderCommand{
@@ -1636,27 +1594,25 @@ fn passFinalLayout() void {
                             .slot_id = ring_buffer[@intCast(slot_idx)].id,
                         });
 
-                        // Between-children borders
                         if (bc.between > 0 and bc.color_a > 0.0) {
                             const lc_idx = ring_buffer[@intCast(slot_idx)].layout_config_idx;
                             if (lc_idx != -1) {
                                 const lc = &layout_configs[@intCast(lc_idx)];
-                                var child_count: i32 = 0;
                                 var border_offset_x: f32 = lc.padding_left;
                                 var border_offset_y: f32 = lc.padding_top;
                                 var first: bool = true;
 
+                                // FIXED: use nextSibling
                                 var ci: i32 = ring_buffer[@intCast(slot_idx)].children_start;
                                 while (ci < ring_buffer[@intCast(slot_idx)].children_end) {
                                     if (isChildLive(ci) and isChildNonFloating(ci)) {
                                         if (!first) {
-                                            // Emit between-children rectangle
                                             if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
                                                 emitRenderCommand(RenderCommand{
                                                     .cmd_type = CMD_RECTANGLE,
-                                                    .x = bbox_x + border_offset_x - @as(f32, @floatFromInt(bc.between)) * 0.5,
+                                                    .x = bbox_x + border_offset_x - @as(f32, @intCast(bc.between)) * 0.5,
                                                     .y = bbox_y,
-                                                    .w = @as(f32, @floatFromInt(bc.between)),
+                                                    .w = @as(f32, @intCast(bc.between)),
                                                     .h = bbox_h,
                                                     .color_r = bc.color_r,
                                                     .color_g = bc.color_g,
@@ -1668,9 +1624,9 @@ fn passFinalLayout() void {
                                                 emitRenderCommand(RenderCommand{
                                                     .cmd_type = CMD_RECTANGLE,
                                                     .x = bbox_x,
-                                                    .y = bbox_y + border_offset_y - @as(f32, @floatFromInt(bc.between)) * 0.5,
+                                                    .y = bbox_y + border_offset_y - @as(f32, @intCast(bc.between)) * 0.5,
                                                     .w = bbox_w,
-                                                    .h = @as(f32, @floatFromInt(bc.between)),
+                                                    .h = @as(f32, @intCast(bc.between)),
                                                     .color_r = bc.color_r,
                                                     .color_g = bc.color_g,
                                                     .color_b = bc.color_b,
@@ -1680,21 +1636,18 @@ fn passFinalLayout() void {
                                             }
                                         }
                                         first = false;
-                                        child_count += 1;
                                         if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
                                             border_offset_x += ring_buffer[@intCast(ci)].dimensions_w + lc.child_gap;
                                         } else {
                                             border_offset_y += ring_buffer[@intCast(ci)].dimensions_h + lc.child_gap;
                                         }
                                     }
-                                    ci += 1;
+                                    ci = nextSibling(ci); // FIXED
                                 }
-                                // _ = child_count; // used implicitly
                             }
                         }
                     }
 
-                    // SCISSOR_END
                     if (configPresentClip(slot_idx)) {
                         emitRenderCommand(RenderCommand{
                             .cmd_type = CMD_SCISSOR_END,
@@ -1717,7 +1670,6 @@ fn passFinalLayout() void {
 fn passPointerDetection(pointer_x: f32, pointer_y: f32, pointer_down: bool) void {
     assertDepsAndMark(BIT_POINTER_DETECTION, BIT_FINAL_LAYOUT);
 
-    // Pointer state machine
     pointer_state = switch (pointer_state) {
         PTR_RELEASED => if (pointer_down) PTR_PRESSED_THIS_FRAME else PTR_RELEASED,
         PTR_PRESSED_THIS_FRAME => if (pointer_down) PTR_PRESSED else PTR_RELEASED_THIS_FRAME,
@@ -1728,7 +1680,6 @@ fn passPointerDetection(pointer_x: f32, pointer_y: f32, pointer_down: bool) void
 
     pointer_over_write_head = 0;
 
-    // Traverse tree roots in REVERSE z-order (highest z first)
     var r: i32 = next_tree_root - 1;
     while (r >= 0) {
         const root_slot = tree_roots[@intCast(r)].layout_element_index;
@@ -1737,7 +1688,6 @@ fn passPointerDetection(pointer_x: f32, pointer_y: f32, pointer_down: bool) void
             continue;
         }
 
-        // DFS per root
         var dfs_stack: [SLOT_COUNT]i32 = [_]i32{-1} ** SLOT_COUNT;
         var dfs_top: i32 = 0;
         dfs_stack[0] = root_slot;
@@ -1747,7 +1697,6 @@ fn passPointerDetection(pointer_x: f32, pointer_y: f32, pointer_down: bool) void
             const slot_idx = dfs_stack[@intCast(dfs_top)];
             dfs_top -= 1;
 
-            // Hit test
             const bx = ring_buffer[@intCast(slot_idx)].bbox_x;
             const by = ring_buffer[@intCast(slot_idx)].bbox_y;
             const bw = ring_buffer[@intCast(slot_idx)].bbox_w;
@@ -1756,7 +1705,6 @@ fn passPointerDetection(pointer_x: f32, pointer_y: f32, pointer_down: bool) void
             var hit: bool = pointer_x >= bx and pointer_x < bx + bw and
                 pointer_y >= by and pointer_y < by + bh;
 
-            // Clip container check
             if (hit) {
                 const clip_id = tree_roots[@intCast(r)].clip_element_id;
                 if (clip_id != -1) {
@@ -1774,12 +1722,9 @@ fn passPointerDetection(pointer_x: f32, pointer_y: f32, pointer_down: bool) void
             }
 
             if (hit) {
-                // Record in pointer_over_ids
                 pointer_over_ids[@intCast(pointer_over_write_head)] = ring_buffer[@intCast(slot_idx)].id;
-                pointer_over_write_head = @mod((pointer_over_write_head + 1), @as(i32, POINTER_OVER_COUNT));
-                std.debug.assert(pointer_over_write_head != 0 or true); // debug assertion placeholder
+                pointer_over_write_head = (pointer_over_write_head + 1) % @as(i32, POINTER_OVER_COUNT);
 
-                // Check capture on floating root
                 if (slot_idx == root_slot and configPresentFloating(slot_idx)) {
                     const fc_idx = configLookupFloating(slot_idx);
                     if (floating_configs[@intCast(fc_idx)].capture_mode == 0) {
@@ -1788,18 +1733,18 @@ fn passPointerDetection(pointer_x: f32, pointer_y: f32, pointer_down: bool) void
                 }
             }
 
-            // Push children (continue traversal regardless of hit)
+            // Push children — FIXED: use nextSibling
             var ci: i32 = ring_buffer[@intCast(slot_idx)].children_start;
             while (ci < ring_buffer[@intCast(slot_idx)].children_end) {
                 if (isChildLive(ci)) {
                     dfs_top += 1;
                     dfs_stack[@intCast(dfs_top)] = ci;
                 }
-                ci += 1;
+                ci = nextSibling(ci); // FIXED
             }
         }
 
-        if (captured) break; // capture mode stops root traversal
+        if (captured) break;
 
         r -= 1;
     }
@@ -1811,6 +1756,23 @@ fn passPointerDetection(pointer_x: f32, pointer_y: f32, pointer_down: bool) void
         pi += 1;
     }
     std.debug.print("---\n", .{});
+}
+
+// Helper: given a slot index, returns the next sibling index
+// by jumping past the entire subtree of that slot.
+// If the slot has no children, next sibling = slot + 1.
+// If it has children, next sibling = children_end of that slot.
+fn nextSibling(slot_idx: i32) i32 {
+    const end = ring_buffer[@intCast(slot_idx)].children_end;
+    if (end > slot_idx + 1) {
+        std.debug.print("    Next Sibling: Returning end: {}\n", .{end});
+        return end;
+    }
+    const next = slot_idx + 1;
+
+    std.debug.print("    Next Sibling: {}\n", .{next});
+
+    return next;
 }
 
 // ============================================================
