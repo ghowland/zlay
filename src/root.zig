@@ -577,7 +577,6 @@ fn elementClose() void {
     var sum_child_w: f32 = 0.0;
     var sum_child_h: f32 = 0.0;
 
-    // FIXED: use nextSibling to skip subtrees — direct children only
     var i: i32 = ring_buffer[@intCast(slot_idx)].children_start;
     while (i < ring_buffer[@intCast(slot_idx)].children_end) {
         if (isChildLive(i)) {
@@ -601,7 +600,7 @@ fn elementClose() void {
                 if (ch > max_child_h) max_child_h = ch;
             }
         }
-        i = nextSibling(i); // FIXED: skip subtree
+        i = nextSibling(i);
     }
 
     const gap_total: f32 = if (child_count > 1) lc.child_gap * @as(f32, @intCast(child_count - 1)) else 0.0;
@@ -833,7 +832,6 @@ fn passSizeX() void {
         const lc = &layout_configs[@intCast(lc_idx)];
         const parent_w: f32 = ring_buffer[@intCast(slot_idx)].dimensions_w;
 
-        // FIXED: use nextSibling throughout
         var i: i32 = ring_buffer[@intCast(slot_idx)].children_start;
         while (i < ring_buffer[@intCast(slot_idx)].children_end) {
             if (isChildLive(i) and isChildNonFloating(i)) {
@@ -855,7 +853,7 @@ fn passSizeX() void {
                             var j: i32 = ring_buffer[@intCast(slot_idx)].children_start;
                             while (j < ring_buffer[@intCast(slot_idx)].children_end) {
                                 if (isChildLive(j) and isChildNonFloating(j)) nfc += 1;
-                                j = nextSibling(j); // FIXED
+                                j = nextSibling(j);
                             }
                             const gap_total: f32 = if (nfc > 1) lc.child_gap * @as(f32, @intCast(nfc - 1)) else 0.0;
                             ring_buffer[@intCast(i)].dimensions_w = (content_w - gap_total) * child_lc.sizing_w_percent;
@@ -878,7 +876,7 @@ fn passSizeX() void {
                                         }
                                     }
                                 }
-                                j2 = nextSibling(j2); // FIXED
+                                j2 = nextSibling(j2);
                             }
                             const gap_total2: f32 = if (nfc2 > 1) lc.child_gap * @as(f32, @intCast(nfc2 - 1)) else 0.0;
                             const remaining: f32 = content_w - gap_total2 - non_grow_sum;
@@ -909,7 +907,7 @@ fn passSizeX() void {
                 queue[@intCast(q_tail)] = i;
                 q_tail += 1;
             }
-            i = nextSibling(i); // FIXED
+            i = nextSibling(i);
         }
     }
 
@@ -1050,14 +1048,13 @@ fn passPropagateHeights() void {
         s2_top += 1;
         stack2[@intCast(s2_top)] = node;
 
-        // FIXED: use nextSibling
         var i: i32 = ring_buffer[@intCast(node)].children_start;
         while (i < ring_buffer[@intCast(node)].children_end) {
             if (isChildLive(i) and isChildNonFloating(i)) {
                 s1_top += 1;
                 stack1[@intCast(s1_top)] = i;
             }
-            i = nextSibling(i); // FIXED
+            i = nextSibling(i);
         }
     }
 
@@ -1076,7 +1073,6 @@ fn passPropagateHeights() void {
         var max_child_h: f32 = 0.0;
         var sum_child_h: f32 = 0.0;
 
-        // FIXED: use nextSibling
         var i: i32 = ring_buffer[@intCast(slot_idx)].children_start;
         while (i < ring_buffer[@intCast(slot_idx)].children_end) {
             if (isChildLive(i) and isChildNonFloating(i)) {
@@ -1085,7 +1081,7 @@ fn passPropagateHeights() void {
                 sum_child_h += ch;
                 if (ch > max_child_h) max_child_h = ch;
             }
-            i = nextSibling(i); // FIXED
+            i = nextSibling(i);
         }
 
         const gap_total: f32 = if (child_count > 1) lc.child_gap * @as(f32, @intCast(child_count - 1)) else 0.0;
@@ -1132,7 +1128,6 @@ fn passSizeY() void {
         const lc = &layout_configs[@intCast(lc_idx)];
         const parent_h: f32 = ring_buffer[@intCast(slot_idx)].dimensions_h;
 
-        // FIXED: use nextSibling throughout
         var i: i32 = ring_buffer[@intCast(slot_idx)].children_start;
         while (i < ring_buffer[@intCast(slot_idx)].children_end) {
             if (isChildLive(i) and isChildNonFloating(i)) {
@@ -1154,7 +1149,7 @@ fn passSizeY() void {
                             var j: i32 = ring_buffer[@intCast(slot_idx)].children_start;
                             while (j < ring_buffer[@intCast(slot_idx)].children_end) {
                                 if (isChildLive(j) and isChildNonFloating(j)) nfc += 1;
-                                j = nextSibling(j); // FIXED
+                                j = nextSibling(j);
                             }
                             const gap_total: f32 = if (nfc > 1) lc.child_gap * @as(f32, @intCast(nfc - 1)) else 0.0;
                             ring_buffer[@intCast(i)].dimensions_h = (content_h - gap_total) * child_lc.sizing_h_percent;
@@ -1177,7 +1172,7 @@ fn passSizeY() void {
                                         }
                                     }
                                 }
-                                j2 = nextSibling(j2); // FIXED
+                                j2 = nextSibling(j2);
                             }
                             const gap_total2: f32 = if (nfc2 > 1) lc.child_gap * @as(f32, @intCast(nfc2 - 1)) else 0.0;
                             const remaining: f32 = content_h - gap_total2 - non_grow_sum;
@@ -1208,7 +1203,7 @@ fn passSizeY() void {
                 queue[@intCast(q_tail)] = i;
                 q_tail += 1;
             }
-            i = nextSibling(i); // FIXED
+            i = nextSibling(i);
         }
     }
 
@@ -1529,7 +1524,7 @@ fn passFinalLayout() void {
                             child_indices[@intCast(child_count)] = ci;
                             child_count += 1;
                         }
-                        ci = nextSibling(ci); // FIXED
+                        ci = nextSibling(ci);
                     }
 
                     var offset_x: f32 = lc.padding_left;
@@ -1602,7 +1597,6 @@ fn passFinalLayout() void {
                                 var border_offset_y: f32 = lc.padding_top;
                                 var first: bool = true;
 
-                                // FIXED: use nextSibling
                                 var ci: i32 = ring_buffer[@intCast(slot_idx)].children_start;
                                 while (ci < ring_buffer[@intCast(slot_idx)].children_end) {
                                     if (isChildLive(ci) and isChildNonFloating(ci)) {
@@ -1642,7 +1636,7 @@ fn passFinalLayout() void {
                                             border_offset_y += ring_buffer[@intCast(ci)].dimensions_h + lc.child_gap;
                                         }
                                     }
-                                    ci = nextSibling(ci); // FIXED
+                                    ci = nextSibling(ci);
                                 }
                             }
                         }
@@ -1740,7 +1734,7 @@ fn passPointerDetection(pointer_x: f32, pointer_y: f32, pointer_down: bool) void
                     dfs_top += 1;
                     dfs_stack[@intCast(dfs_top)] = ci;
                 }
-                ci = nextSibling(ci); // FIXED
+                ci = nextSibling(ci);
             }
         }
 
