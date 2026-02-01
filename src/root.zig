@@ -577,7 +577,7 @@ fn elementClose() void {
     var sum_child_w: f32 = 0.0;
     var sum_child_h: f32 = 0.0;
 
-    : use nextSibling to skip subtrees — direct children only
+    // FIXED: use nextSibling to skip subtrees — direct children only
     var i: i32 = ring_buffer[@intCast(slot_idx)].children_start;
     while (i < ring_buffer[@intCast(slot_idx)].children_end) {
         if (isChildLive(i)) {
@@ -601,7 +601,7 @@ fn elementClose() void {
                 if (ch > max_child_h) max_child_h = ch;
             }
         }
-        i = nextSibling(i); : skip subtree
+        i = nextSibling(i); // FIXED: skip subtree
     }
 
     const gap_total: f32 = if (child_count > 1) lc.child_gap * @as(f32, @intCast(child_count - 1)) else 0.0;
@@ -833,7 +833,7 @@ fn passSizeX() void {
         const lc = &layout_configs[@intCast(lc_idx)];
         const parent_w: f32 = ring_buffer[@intCast(slot_idx)].dimensions_w;
 
-        : use nextSibling throughout
+        // FIXED: use nextSibling throughout
         var i: i32 = ring_buffer[@intCast(slot_idx)].children_start;
         while (i < ring_buffer[@intCast(slot_idx)].children_end) {
             if (isChildLive(i) and isChildNonFloating(i)) {
@@ -855,7 +855,7 @@ fn passSizeX() void {
                             var j: i32 = ring_buffer[@intCast(slot_idx)].children_start;
                             while (j < ring_buffer[@intCast(slot_idx)].children_end) {
                                 if (isChildLive(j) and isChildNonFloating(j)) nfc += 1;
-                                j = nextSibling(j); 
+                                j = nextSibling(j); // FIXED
                             }
                             const gap_total: f32 = if (nfc > 1) lc.child_gap * @as(f32, @intCast(nfc - 1)) else 0.0;
                             ring_buffer[@intCast(i)].dimensions_w = (content_w - gap_total) * child_lc.sizing_w_percent;
@@ -878,7 +878,7 @@ fn passSizeX() void {
                                         }
                                     }
                                 }
-                                j2 = nextSibling(j2); 
+                                j2 = nextSibling(j2); // FIXED
                             }
                             const gap_total2: f32 = if (nfc2 > 1) lc.child_gap * @as(f32, @intCast(nfc2 - 1)) else 0.0;
                             const remaining: f32 = content_w - gap_total2 - non_grow_sum;
@@ -909,7 +909,7 @@ fn passSizeX() void {
                 queue[@intCast(q_tail)] = i;
                 q_tail += 1;
             }
-            i = nextSibling(i); 
+            i = nextSibling(i); // FIXED
         }
     }
 
@@ -1050,14 +1050,14 @@ fn passPropagateHeights() void {
         s2_top += 1;
         stack2[@intCast(s2_top)] = node;
 
-        : use nextSibling
+        // FIXED: use nextSibling
         var i: i32 = ring_buffer[@intCast(node)].children_start;
         while (i < ring_buffer[@intCast(node)].children_end) {
             if (isChildLive(i) and isChildNonFloating(i)) {
                 s1_top += 1;
                 stack1[@intCast(s1_top)] = i;
             }
-            i = nextSibling(i); 
+            i = nextSibling(i); // FIXED
         }
     }
 
@@ -1076,7 +1076,7 @@ fn passPropagateHeights() void {
         var max_child_h: f32 = 0.0;
         var sum_child_h: f32 = 0.0;
 
-        : use nextSibling
+        // FIXED: use nextSibling
         var i: i32 = ring_buffer[@intCast(slot_idx)].children_start;
         while (i < ring_buffer[@intCast(slot_idx)].children_end) {
             if (isChildLive(i) and isChildNonFloating(i)) {
@@ -1085,7 +1085,7 @@ fn passPropagateHeights() void {
                 sum_child_h += ch;
                 if (ch > max_child_h) max_child_h = ch;
             }
-            i = nextSibling(i); 
+            i = nextSibling(i); // FIXED
         }
 
         const gap_total: f32 = if (child_count > 1) lc.child_gap * @as(f32, @intCast(child_count - 1)) else 0.0;
@@ -1132,7 +1132,7 @@ fn passSizeY() void {
         const lc = &layout_configs[@intCast(lc_idx)];
         const parent_h: f32 = ring_buffer[@intCast(slot_idx)].dimensions_h;
 
-        : use nextSibling throughout
+        // FIXED: use nextSibling throughout
         var i: i32 = ring_buffer[@intCast(slot_idx)].children_start;
         while (i < ring_buffer[@intCast(slot_idx)].children_end) {
             if (isChildLive(i) and isChildNonFloating(i)) {
@@ -1154,7 +1154,7 @@ fn passSizeY() void {
                             var j: i32 = ring_buffer[@intCast(slot_idx)].children_start;
                             while (j < ring_buffer[@intCast(slot_idx)].children_end) {
                                 if (isChildLive(j) and isChildNonFloating(j)) nfc += 1;
-                                j = nextSibling(j); 
+                                j = nextSibling(j); // FIXED
                             }
                             const gap_total: f32 = if (nfc > 1) lc.child_gap * @as(f32, @intCast(nfc - 1)) else 0.0;
                             ring_buffer[@intCast(i)].dimensions_h = (content_h - gap_total) * child_lc.sizing_h_percent;
@@ -1177,7 +1177,7 @@ fn passSizeY() void {
                                         }
                                     }
                                 }
-                                j2 = nextSibling(j2); 
+                                j2 = nextSibling(j2); // FIXED
                             }
                             const gap_total2: f32 = if (nfc2 > 1) lc.child_gap * @as(f32, @intCast(nfc2 - 1)) else 0.0;
                             const remaining: f32 = content_h - gap_total2 - non_grow_sum;
@@ -1208,7 +1208,7 @@ fn passSizeY() void {
                 queue[@intCast(q_tail)] = i;
                 q_tail += 1;
             }
-            i = nextSibling(i); 
+            i = nextSibling(i); // FIXED
         }
     }
 
@@ -1334,28 +1334,24 @@ fn isCulled(bbox_x: f32, bbox_y: f32, bbox_w: f32, bbox_h: f32) bool {
         bbox_y + bbox_h < 0.0;
 }
 
-// ------------------------------------------------------------------
-//  COMPLETE REPLACEMENT for passFinalLayout
-// ------------------------------------------------------------------
 fn passFinalLayout() void {
     assertDepsAndMark(BIT_FINAL_LAYOUT, BIT_ASPECT_RATIO_H | BIT_SORT_Z);
 
     var dfs_stack: [SLOT_COUNT]DFSEntry = [_]DFSEntry{DFSEntry{}} ** SLOT_COUNT;
     var dfs_top: i32 = -1;
 
-    // ONE guard array for the whole frame
-    var dfs_seen: [SLOT_COUNT]bool = [_]bool{false} ** SLOT_COUNT;
-    @memset(&dfs_seen, false); // clear it once
-
     var r: i32 = 0;
-    while (r < next_tree_root) : (r += 1) {
+    while (r < next_tree_root) {
         const root_slot = tree_roots[@intCast(r)].layout_element_index;
-        if (root_slot < 0) continue;
+        if (root_slot < 0) {
+            r += 1;
+            continue;
+        }
 
         const is_floating_root: bool = configPresentFloating(root_slot);
 
         dfs_top = 0;
-        dfs_stack[0] = .{
+        dfs_stack[0] = DFSEntry{
             .slot_idx = root_slot,
             .visit = DFS_VISIT_DOWN,
             .parent_bbox_x = 0.0,
@@ -1371,36 +1367,45 @@ fn passFinalLayout() void {
             dfs_top -= 1;
             const slot_idx = entry.slot_idx;
 
-            // DOWNWARD PASS
             if (entry.visit == DFS_VISIT_DOWN) {
-                // skip if already processed this frame
-                if (dfs_seen[@intCast(slot_idx)]) continue;
-                dfs_seen[@intCast(slot_idx)] = true;
+                var bbox_x: f32 = entry.parent_bbox_x + entry.next_child_offset_x + entry.scroll_offset_x;
+                var bbox_y: f32 = entry.parent_bbox_y + entry.next_child_offset_y + entry.scroll_offset_y;
+                var bbox_w: f32 = ring_buffer[@intCast(slot_idx)].dimensions_w;
+                var bbox_h: f32 = ring_buffer[@intCast(slot_idx)].dimensions_h;
 
-                var bbox_x = entry.parent_bbox_x + entry.next_child_offset_x + entry.scroll_offset_x;
-                var bbox_y = entry.parent_bbox_y + entry.next_child_offset_y + entry.scroll_offset_y;
-                var bbox_w = ring_buffer[@intCast(slot_idx)].dimensions_w;
-                var bbox_h = ring_buffer[@intCast(slot_idx)].dimensions_h;
-
-                // floating-root positioning
                 if (is_floating_root and slot_idx == root_slot) {
-                    const fc = &floating_configs[@intCast(configLookupFloating(slot_idx))];
-                    var target_bbox = .{ .x = 0.0, .y = 0.0, .w = layout_width, .h = layout_height };
-                    if (fc.attach_to == 2) {
+                    const fc_idx = configLookupFloating(slot_idx);
+                    const fc = &floating_configs[@intCast(fc_idx)];
+
+                    var target_bbox_x: f32 = 0.0;
+                    var target_bbox_y: f32 = 0.0;
+                    var target_bbox_w: f32 = layout_width;
+                    var target_bbox_h: f32 = layout_height;
+
+                    if (fc.attach_to == 1) {
+                        const parent_slot = ring_buffer[@intCast(slot_idx)].parent_slot_idx;
+                        if (parent_slot >= 0) {
+                            target_bbox_x = ring_buffer[@intCast(parent_slot)].bbox_x;
+                            target_bbox_y = ring_buffer[@intCast(parent_slot)].bbox_y;
+                            target_bbox_w = ring_buffer[@intCast(parent_slot)].bbox_w;
+                            target_bbox_h = ring_buffer[@intCast(parent_slot)].bbox_h;
+                        }
+                    } else if (fc.attach_to == 2) {
                         const target_slot = hashChainWalk(fc.parent_id);
                         if (target_slot >= 0) {
-                            target_bbox = .{
-                                .x = ring_buffer[@intCast(target_slot)].bbox_x,
-                                .y = ring_buffer[@intCast(target_slot)].bbox_y,
-                                .w = ring_buffer[@intCast(target_slot)].bbox_w,
-                                .h = ring_buffer[@intCast(target_slot)].bbox_h,
-                            };
+                            target_bbox_x = ring_buffer[@intCast(target_slot)].bbox_x;
+                            target_bbox_y = ring_buffer[@intCast(target_slot)].bbox_y;
+                            target_bbox_w = ring_buffer[@intCast(target_slot)].bbox_w;
+                            target_bbox_h = ring_buffer[@intCast(target_slot)].bbox_h;
                         }
                     }
-                    const parent_pt = resolveAttachPoint(fc.attach_parent, target_bbox.x, target_bbox.y, target_bbox.w, target_bbox.h);
+
+                    const parent_pt = resolveAttachPoint(fc.attach_parent, target_bbox_x, target_bbox_y, target_bbox_w, target_bbox_h);
                     const elem_off = resolveElementAttachOffset(fc.attach_element, bbox_w, bbox_h);
+
                     bbox_x = parent_pt.x - elem_off.x + fc.offset_x;
                     bbox_y = parent_pt.y - elem_off.y + fc.offset_y;
+
                     bbox_x -= fc.expand_w;
                     bbox_y -= fc.expand_h;
                     bbox_w += fc.expand_w * 2.0;
@@ -1412,20 +1417,19 @@ fn passFinalLayout() void {
                 ring_buffer[@intCast(slot_idx)].bbox_w = bbox_w;
                 ring_buffer[@intCast(slot_idx)].bbox_h = bbox_h;
 
-                var scroll_x = entry.scroll_offset_x;
-                var scroll_y = entry.scroll_offset_y;
+                var scroll_x: f32 = entry.scroll_offset_x;
+                var scroll_y: f32 = entry.scroll_offset_y;
                 if (configPresentClip(slot_idx)) {
-                    const cc = &clip_configs[@intCast(configLookupClip(slot_idx))];
-                    scroll_x += cc.child_offset_x;
-                    scroll_y += cc.child_offset_y;
+                    const cc_idx = configLookupClip(slot_idx);
+                    scroll_x += clip_configs[@intCast(cc_idx)].child_offset_x;
+                    scroll_y += clip_configs[@intCast(cc_idx)].child_offset_y;
                 }
 
                 const culled = isCulled(bbox_x, bbox_y, bbox_w, bbox_h);
 
                 if (!culled) {
-                    // scissor
                     if (configPresentClip(slot_idx)) {
-                        emitRenderCommand(.{
+                        emitRenderCommand(RenderCommand{
                             .cmd_type = CMD_SCISSOR_START,
                             .x = bbox_x,
                             .y = bbox_y,
@@ -1434,11 +1438,10 @@ fn passFinalLayout() void {
                             .slot_id = ring_buffer[@intCast(slot_idx)].id,
                         });
                     }
-                    // background rect
                     if (configPresentShared(slot_idx)) {
                         const sc = &shared_configs[@intCast(configLookupShared(slot_idx))];
                         if (sc.bg_a > 0.0) {
-                            emitRenderCommand(.{
+                            emitRenderCommand(RenderCommand{
                                 .cmd_type = CMD_RECTANGLE,
                                 .x = bbox_x,
                                 .y = bbox_y,
@@ -1456,9 +1459,8 @@ fn passFinalLayout() void {
                             });
                         }
                     }
-                    // image
                     if (configPresentImage(slot_idx)) {
-                        emitRenderCommand(.{
+                        emitRenderCommand(RenderCommand{
                             .cmd_type = CMD_IMAGE,
                             .x = bbox_x,
                             .y = bbox_y,
@@ -1467,29 +1469,32 @@ fn passFinalLayout() void {
                             .slot_id = ring_buffer[@intCast(slot_idx)].id,
                         });
                     }
-                    // TEXT — only once per frame
                     if (ring_buffer[@intCast(slot_idx)].text_data_idx != -1) {
-                        const td = &text_data[@intCast(ring_buffer[@intCast(slot_idx)].text_data_idx)];
-                        var line_y = bbox_y;
-                        var wl = td.wrapped_lines_start;
-                        while (wl < td.wrapped_lines_end) : (wl += 1) {
+                        const td_idx = ring_buffer[@intCast(slot_idx)].text_data_idx;
+                        const td = &text_data[@intCast(td_idx)];
+
+                        std.debug.print("TEXT EMIT: slot={}  id={}  bbox=({},{})  cmd#={}\n", .{ slot_idx, ring_buffer[@intCast(slot_idx)].id, bbox_x, bbox_y, next_render_cmd });
+
+                        var line_y: f32 = bbox_y;
+                        var wl: i32 = td.wrapped_lines_start;
+                        while (wl < td.wrapped_lines_end) {
                             const wline = &wrapped_lines[@intCast(wl)];
-                            emitRenderCommand(.{
+                            emitRenderCommand(RenderCommand{
                                 .cmd_type = CMD_TEXT,
                                 .x = bbox_x,
                                 .y = line_y,
                                 .w = wline.dim_w,
                                 .h = wline.dim_h,
-                                .text_data_idx = ring_buffer[@intCast(slot_idx)].text_data_idx,
+                                .text_data_idx = td_idx,
                                 .wrapped_line_idx = wl,
                                 .slot_id = ring_buffer[@intCast(slot_idx)].id,
                             });
                             line_y += wline.dim_h;
+                            wl += 1;
                         }
                     }
-                    // custom
                     if (configPresentCustom(slot_idx)) {
-                        emitRenderCommand(.{
+                        emitRenderCommand(RenderCommand{
                             .cmd_type = CMD_CUSTOM,
                             .x = bbox_x,
                             .y = bbox_y,
@@ -1500,9 +1505,9 @@ fn passFinalLayout() void {
                     }
                 }
 
-                // schedule UP visit
+                // Push UP visit
                 dfs_top += 1;
-                dfs_stack[@intCast(dfs_top)] = .{
+                dfs_stack[@intCast(dfs_top)] = DFSEntry{
                     .slot_idx = slot_idx,
                     .visit = DFS_VISIT_UP,
                     .parent_bbox_x = bbox_x,
@@ -1511,56 +1516,58 @@ fn passFinalLayout() void {
                     .scroll_offset_y = scroll_y,
                 };
 
-                // push children in reverse order (first child popped first)
+                // Push children in REVERSE order — FIXED: use nextSibling
                 const lc_idx = ring_buffer[@intCast(slot_idx)].layout_config_idx;
-                if (lc_idx == -1) continue;
-                const lc = &layout_configs[@intCast(lc_idx)];
+                if (lc_idx != -1) {
+                    const lc = &layout_configs[@intCast(lc_idx)];
 
-                var child_indices: [256]i32 = [_]i32{-1} ** 256;
-                var child_count: i32 = 0;
-                var ci = ring_buffer[@intCast(slot_idx)].children_start;
-                while (ci < ring_buffer[@intCast(slot_idx)].children_end) {
-                    if (isChildLive(ci) and isChildNonFloating(ci) and !dfs_seen[@intCast(ci)]) {
-                        child_indices[@intCast(child_count)] = ci;
-                        child_count += 1;
+                    var child_indices: [256]i32 = [_]i32{-1} ** 256;
+                    var child_count: i32 = 0;
+                    var ci: i32 = ring_buffer[@intCast(slot_idx)].children_start;
+                    while (ci < ring_buffer[@intCast(slot_idx)].children_end) {
+                        if (isChildLive(ci) and isChildNonFloating(ci)) {
+                            child_indices[@intCast(child_count)] = ci;
+                            child_count += 1;
+                        }
+                        ci = nextSibling(ci); // FIXED
                     }
-                    ci = nextSibling(ci);
-                }
 
-                var offset_x = lc.padding_left;
-                var offset_y = lc.padding_top;
-                var offsets_x: [256]f32 = [_]f32{0.0} ** 256;
-                var offsets_y: [256]f32 = [_]f32{0.0} ** 256;
-                for (0, 0..@intCast(child_count)) |oi, j| {
-                    const child_idx = child_indices[j];
-                    offsets_x[oi] = offset_x;
-                    offsets_y[oi] = offset_y;
-                    if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
-                        offset_x += ring_buffer[@intCast(child_idx)].dimensions_w + lc.child_gap;
-                    } else {
-                        offset_y += ring_buffer[@intCast(child_idx)].dimensions_h + lc.child_gap;
+                    var offset_x: f32 = lc.padding_left;
+                    var offset_y: f32 = lc.padding_top;
+
+                    var offsets_x: [256]f32 = [_]f32{0.0} ** 256;
+                    var offsets_y: [256]f32 = [_]f32{0.0} ** 256;
+                    var oi: i32 = 0;
+                    while (oi < child_count) {
+                        offsets_x[@intCast(oi)] = offset_x;
+                        offsets_y[@intCast(oi)] = offset_y;
+                        const child_idx = child_indices[@intCast(oi)];
+                        if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
+                            offset_x += ring_buffer[@intCast(child_idx)].dimensions_w + lc.child_gap;
+                        } else {
+                            offset_y += ring_buffer[@intCast(child_idx)].dimensions_h + lc.child_gap;
+                        }
+                        oi += 1;
+                    }
+
+                    var pi: i32 = child_count - 1;
+                    while (pi >= 0) {
+                        dfs_top += 1;
+                        dfs_stack[@intCast(dfs_top)] = DFSEntry{
+                            .slot_idx = child_indices[@intCast(pi)],
+                            .visit = DFS_VISIT_DOWN,
+                            .parent_bbox_x = bbox_x,
+                            .parent_bbox_y = bbox_y,
+                            .next_child_offset_x = offsets_x[@intCast(pi)],
+                            .next_child_offset_y = offsets_y[@intCast(pi)],
+                            .scroll_offset_x = scroll_x,
+                            .scroll_offset_y = scroll_y,
+                        };
+                        pi -= 1;
                     }
                 }
-
-                var pi = child_count - 1;
-                while (pi >= 0) : (pi -= 1) {
-                    const child_idx = child_indices[@intCast(pi)];
-                    dfs_seen[@intCast(child_idx)] = true;
-                    dfs_top += 1;
-                    dfs_stack[@intCast(dfs_top)] = .{
-                        .slot_idx = child_idx,
-                        .visit = DFS_VISIT_DOWN,
-                        .parent_bbox_x = bbox_x,
-                        .parent_bbox_y = bbox_y,
-                        .next_child_offset_x = offsets_x[@intCast(pi)],
-                        .next_child_offset_y = offsets_y[@intCast(pi)],
-                        .scroll_offset_x = scroll_x,
-                        .scroll_offset_y = scroll_y,
-                    };
-                }
-            }
-            // UPWARD PASS
-            else {
+            } else {
+                // UP visit
                 const bbox_x = ring_buffer[@intCast(slot_idx)].bbox_x;
                 const bbox_y = ring_buffer[@intCast(slot_idx)].bbox_y;
                 const bbox_w = ring_buffer[@intCast(slot_idx)].bbox_w;
@@ -1568,10 +1575,9 @@ fn passFinalLayout() void {
                 const culled = isCulled(bbox_x, bbox_y, bbox_w, bbox_h);
 
                 if (!culled) {
-                    // border
                     if (configPresentBorder(slot_idx)) {
                         const bc = &border_configs[@intCast(configLookupBorder(slot_idx))];
-                        emitRenderCommand(.{
+                        emitRenderCommand(RenderCommand{
                             .cmd_type = CMD_BORDER,
                             .x = bbox_x,
                             .y = bbox_y,
@@ -1587,59 +1593,63 @@ fn passFinalLayout() void {
                             .border_bottom = bc.bottom,
                             .slot_id = ring_buffer[@intCast(slot_idx)].id,
                         });
-                        // between separators
+
                         if (bc.between > 0 and bc.color_a > 0.0) {
-                            const lc = &layout_configs[@intCast(ring_buffer[@intCast(slot_idx)].layout_config_idx)];
-                            var border_offset_x = lc.padding_left;
-                            var border_offset_y = lc.padding_top;
-                            var first = true;
-                            var ci = ring_buffer[@intCast(slot_idx)].children_start;
-                            while (ci < ring_buffer[@intCast(slot_idx)].children_end) {
-                                if (isChildLive(ci) and isChildNonFloating(ci)) {
-                                    if (!first) {
+                            const lc_idx = ring_buffer[@intCast(slot_idx)].layout_config_idx;
+                            if (lc_idx != -1) {
+                                const lc = &layout_configs[@intCast(lc_idx)];
+                                var border_offset_x: f32 = lc.padding_left;
+                                var border_offset_y: f32 = lc.padding_top;
+                                var first: bool = true;
+
+                                // FIXED: use nextSibling
+                                var ci: i32 = ring_buffer[@intCast(slot_idx)].children_start;
+                                while (ci < ring_buffer[@intCast(slot_idx)].children_end) {
+                                    if (isChildLive(ci) and isChildNonFloating(ci)) {
+                                        if (!first) {
+                                            if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
+                                                emitRenderCommand(RenderCommand{
+                                                    .cmd_type = CMD_RECTANGLE,
+                                                    .x = bbox_x + border_offset_x - @as(f32, @intCast(bc.between)) * 0.5,
+                                                    .y = bbox_y,
+                                                    .w = @as(f32, @intCast(bc.between)),
+                                                    .h = bbox_h,
+                                                    .color_r = bc.color_r,
+                                                    .color_g = bc.color_g,
+                                                    .color_b = bc.color_b,
+                                                    .color_a = bc.color_a,
+                                                    .slot_id = ring_buffer[@intCast(slot_idx)].id,
+                                                });
+                                            } else {
+                                                emitRenderCommand(RenderCommand{
+                                                    .cmd_type = CMD_RECTANGLE,
+                                                    .x = bbox_x,
+                                                    .y = bbox_y + border_offset_y - @as(f32, @intCast(bc.between)) * 0.5,
+                                                    .w = bbox_w,
+                                                    .h = @as(f32, @intCast(bc.between)),
+                                                    .color_r = bc.color_r,
+                                                    .color_g = bc.color_g,
+                                                    .color_b = bc.color_b,
+                                                    .color_a = bc.color_a,
+                                                    .slot_id = ring_buffer[@intCast(slot_idx)].id,
+                                                });
+                                            }
+                                        }
+                                        first = false;
                                         if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
-                                            emitRenderCommand(.{
-                                                .cmd_type = CMD_RECTANGLE,
-                                                .x = bbox_x + border_offset_x - @as(f32, @intCast(bc.between)) * 0.5,
-                                                .y = bbox_y,
-                                                .w = @as(f32, @intCast(bc.between)),
-                                                .h = bbox_h,
-                                                .color_r = bc.color_r,
-                                                .color_g = bc.color_g,
-                                                .color_b = bc.color_b,
-                                                .color_a = bc.color_a,
-                                                .slot_id = -1,
-                                            });
+                                            border_offset_x += ring_buffer[@intCast(ci)].dimensions_w + lc.child_gap;
                                         } else {
-                                            emitRenderCommand(.{
-                                                .cmd_type = CMD_RECTANGLE,
-                                                .x = bbox_x,
-                                                .y = bbox_y + border_offset_y - @as(f32, @intCast(bc.between)) * 0.5,
-                                                .w = bbox_w,
-                                                .h = @as(f32, @intCast(bc.between)),
-                                                .color_r = bc.color_r,
-                                                .color_g = bc.color_g,
-                                                .color_b = bc.color_b,
-                                                .color_a = bc.color_a,
-                                                .slot_id = -1,
-                                            });
+                                            border_offset_y += ring_buffer[@intCast(ci)].dimensions_h + lc.child_gap;
                                         }
                                     }
-                                    first = false;
-                                    if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
-                                        border_offset_x += ring_buffer[@intCast(ci)].dimensions_w + lc.child_gap;
-                                    } else {
-                                        border_offset_y += ring_buffer[@intCast(ci)].dimensions_h + lc.child_gap;
-                                    }
+                                    ci = nextSibling(ci); // FIXED
                                 }
-                                ci = nextSibling(ci);
                             }
                         }
                     }
 
-                    // scissor end
                     if (configPresentClip(slot_idx)) {
-                        emitRenderCommand(.{
+                        emitRenderCommand(RenderCommand{
                             .cmd_type = CMD_SCISSOR_END,
                             .slot_id = ring_buffer[@intCast(slot_idx)].id,
                         });
@@ -1647,6 +1657,8 @@ fn passFinalLayout() void {
                 }
             }
         }
+
+        r += 1;
     }
 
     std.debug.print("--- Pass 9: final_layout complete. {} render commands ---\n", .{next_render_cmd});
@@ -1728,7 +1740,7 @@ fn passPointerDetection(pointer_x: f32, pointer_y: f32, pointer_down: bool) void
                     dfs_top += 1;
                     dfs_stack[@intCast(dfs_top)] = ci;
                 }
-                ci = nextSibling(ci); 
+                ci = nextSibling(ci); // FIXED
             }
         }
 
