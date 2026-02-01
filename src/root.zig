@@ -604,7 +604,7 @@ fn elementClose() void {
         i += 1;
     }
 
-    const gap_total: f32 = if (child_count > 1) lc.child_gap * @as(f32, @intCast(child_count - 1)) else 0.0;
+    const gap_total: f32 = if (child_count > 1) lc.child_gap * @as(f32, @floatFromInt(child_count - 1)) else 0.0;
 
     if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
         fit_w += sum_child_w + gap_total;
@@ -862,7 +862,7 @@ fn passSizeX() void {
                                 if (isChildLive(j) and isChildNonFloating(j)) nfc += 1;
                                 j += 1;
                             }
-                            const gap_total: f32 = if (nfc > 1) lc.child_gap * @as(f32, @intCast(nfc - 1)) else 0.0;
+                            const gap_total: f32 = if (nfc > 1) lc.child_gap * @as(f32, @floatFromInt(nfc - 1)) else 0.0;
                             ring_buffer[@intCast(i)].dimensions_w = (content_w - gap_total) * child_lc.sizing_w_percent;
                         },
                         SIZE_GROW => {
@@ -886,10 +886,10 @@ fn passSizeX() void {
                                 }
                                 j2 += 1;
                             }
-                            const gap_total2: f32 = if (nfc2 > 1) lc.child_gap * @as(f32, @intCast(nfc2 - 1)) else 0.0;
+                            const gap_total2: f32 = if (nfc2 > 1) lc.child_gap * @as(f32, @floatFromInt(nfc2 - 1)) else 0.0;
                             const remaining: f32 = content_w - gap_total2 - non_grow_sum;
                             if (grow_count > 0 and remaining > 0) {
-                                var grown: f32 = remaining / @as(f32, @intCast(grow_count));
+                                var grown: f32 = remaining / @as(f32, @floatFromInt(grow_count));
                                 grown = @max(grown, child_lc.sizing_w_min);
                                 grown = @min(grown, child_lc.sizing_w_max);
                                 ring_buffer[@intCast(i)].dimensions_w = grown;
@@ -940,8 +940,8 @@ fn passTextWrap() void {
             const tc = &text_configs[@intCast(tc_idx)];
 
             const container_w: f32 = ring_buffer[@intCast(i)].dimensions_w;
-            const char_w: f32 = @as(f32, @intCast(tc.font_size)) * 0.5; // simplified: half font size per char
-            const line_h: f32 = @as(f32, @intCast(tc.line_height));
+            const char_w: f32 = @as(f32, @floatFromInt(tc.font_size)) * 0.5; // simplified: half font size per char
+            const line_h: f32 = @as(f32, @floatFromInt(tc.line_height));
 
             // Simple word wrap: walk text, break at spaces where line exceeds container_w
             td.wrapped_lines_start = next_wrapped_line;
@@ -958,7 +958,7 @@ fn passTextWrap() void {
                     // End of word or end of text
                     if (pos > line_start) {
                         const word_len = pos - line_start;
-                        const word_w: f32 = @as(f32, @intCast(word_len)) * char_w;
+                        const word_w: f32 = @as(f32, @floatFromInt(word_len)) * char_w;
 
                         if (line_w + word_w > container_w and line_w > 0.0) {
                             // Emit current line (before this word)
@@ -1000,7 +1000,7 @@ fn passTextWrap() void {
 
             // Update element height = lineHeight * number of wrapped lines
             const line_count: i32 = td.wrapped_lines_end - td.wrapped_lines_start;
-            ring_buffer[@intCast(i)].dimensions_h = line_h * @as(f32, @intCast(line_count));
+            ring_buffer[@intCast(i)].dimensions_h = line_h * @as(f32, @floatFromInt(line_count));
 
             std.debug.print("  text_wrap: slot {} -> {} lines, h={}\n", .{ i, line_count, ring_buffer[@intCast(i)].dimensions_h });
         }
@@ -1101,13 +1101,14 @@ fn passPropagateHeights() void {
             i += 1;
         }
 
-        const gap_total: f32 = if (child_count > 1) lc.child_gap * @as(f32, @intCast(child_count - 1)) else 0.0;
+        const gap_total: f32 = if (child_count > 1) lc.child_gap * @as(f32, @floatFromInt(child_count - 1)) else 0.0;
 
-        var new_h: f32 = if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
-            max_child_h + lc.padding_top + lc.padding_bottom;
+        var new_h: f32 = 0;
+        if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
+            new_h = max_child_h + lc.padding_top + lc.padding_bottom;
         } else {
-            sum_child_h + gap_total + lc.padding_top + lc.padding_bottom;
-        };
+            new_h = sum_child_h + gap_total + lc.padding_top + lc.padding_bottom;
+        }
 
         new_h = @max(@min(new_h, lc.sizing_h_max), lc.sizing_h_min);
         ring_buffer[@intCast(slot_idx)].dimensions_h = new_h;
@@ -1169,7 +1170,7 @@ fn passSizeY() void {
                                 if (isChildLive(j) and isChildNonFloating(j)) nfc += 1;
                                 j += 1;
                             }
-                            const gap_total: f32 = if (nfc > 1) lc.child_gap * @as(f32, @intCast(nfc - 1)) else 0.0;
+                            const gap_total: f32 = if (nfc > 1) lc.child_gap * @as(f32, @floatFromInt(nfc - 1)) else 0.0;
                             ring_buffer[@intCast(i)].dimensions_h = (content_h - gap_total) * child_lc.sizing_h_percent;
                         },
                         SIZE_GROW => {
@@ -1192,10 +1193,10 @@ fn passSizeY() void {
                                 }
                                 j2 += 1;
                             }
-                            const gap_total2: f32 = if (nfc2 > 1) lc.child_gap * @as(f32, @intCast(nfc2 - 1)) else 0.0;
+                            const gap_total2: f32 = if (nfc2 > 1) lc.child_gap * @as(f32, @floatFromInt(nfc2 - 1)) else 0.0;
                             const remaining: f32 = content_h - gap_total2 - non_grow_sum;
                             if (grow_count > 0 and remaining > 0) {
-                                var grown: f32 = remaining / @as(f32, @intCast(grow_count));
+                                var grown: f32 = remaining / @as(f32, @floatFromInt(grow_count));
                                 grown = @max(grown, child_lc.sizing_h_min);
                                 grown = @min(grown, child_lc.sizing_h_max);
                                 ring_buffer[@intCast(i)].dimensions_h = grown;
@@ -1310,8 +1311,8 @@ fn resolveAttachPoint(attach_idx: i32, bbox_x: f32, bbox_y: f32, bbox_w: f32, bb
     // 0=left_top  1=left_center  2=left_bottom
     // 3=center_top 4=center_center 5=center_bottom
     // 6=right_top 7=right_center 8=right_bottom
-    const col = attach_idx % 3; // 0=left, 1=center, 2=right
-    const row = attach_idx / 3; // 0=top, 1=center, 2=bottom
+    const col = @mod(attach_idx, 3); // 0=left, 1=center, 2=right
+    const row = @divTrunc(attach_idx, 3); // 0=top, 1=center, 2=bottom
     const x: f32 = switch (col) {
         0 => bbox_x,
         1 => bbox_x + bbox_w * 0.5,
@@ -1326,8 +1327,8 @@ fn resolveAttachPoint(attach_idx: i32, bbox_x: f32, bbox_y: f32, bbox_w: f32, bb
 }
 
 fn resolveElementAttachOffset(attach_idx: i32, dim_w: f32, dim_h: f32) struct { x: f32, y: f32 } {
-    const col = attach_idx % 3;
-    const row = attach_idx / 3;
+    const col = @mod(attach_idx, 3);
+    const row = @divTrunc(attach_idx, 3);
     const x: f32 = switch (col) {
         0 => 0.0,
         1 => dim_w * 0.5,
@@ -1653,9 +1654,9 @@ fn passFinalLayout() void {
                                             if (lc.layout_direction == LAYOUT_LEFT_TO_RIGHT) {
                                                 emitRenderCommand(RenderCommand{
                                                     .cmd_type = CMD_RECTANGLE,
-                                                    .x = bbox_x + border_offset_x - @as(f32, @intCast(bc.between)) * 0.5,
+                                                    .x = bbox_x + border_offset_x - @as(f32, @floatFromInt(bc.between)) * 0.5,
                                                     .y = bbox_y,
-                                                    .w = @as(f32, @intCast(bc.between)),
+                                                    .w = @as(f32, @floatFromInt(bc.between)),
                                                     .h = bbox_h,
                                                     .color_r = bc.color_r,
                                                     .color_g = bc.color_g,
@@ -1667,9 +1668,9 @@ fn passFinalLayout() void {
                                                 emitRenderCommand(RenderCommand{
                                                     .cmd_type = CMD_RECTANGLE,
                                                     .x = bbox_x,
-                                                    .y = bbox_y + border_offset_y - @as(f32, @intCast(bc.between)) * 0.5,
+                                                    .y = bbox_y + border_offset_y - @as(f32, @floatFromInt(bc.between)) * 0.5,
                                                     .w = bbox_w,
-                                                    .h = @as(f32, @intCast(bc.between)),
+                                                    .h = @as(f32, @floatFromInt(bc.between)),
                                                     .color_r = bc.color_r,
                                                     .color_g = bc.color_g,
                                                     .color_b = bc.color_b,
@@ -1775,7 +1776,7 @@ fn passPointerDetection(pointer_x: f32, pointer_y: f32, pointer_down: bool) void
             if (hit) {
                 // Record in pointer_over_ids
                 pointer_over_ids[@intCast(pointer_over_write_head)] = ring_buffer[@intCast(slot_idx)].id;
-                pointer_over_write_head = (pointer_over_write_head + 1) % @as(i32, POINTER_OVER_COUNT);
+                pointer_over_write_head = @mod((pointer_over_write_head + 1), @as(i32, POINTER_OVER_COUNT));
                 std.debug.assert(pointer_over_write_head != 0 or true); // debug assertion placeholder
 
                 // Check capture on floating root
